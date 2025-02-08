@@ -1,74 +1,91 @@
+const ws = new WebSocket("wss://webrtc-test-aht2.onrender.com");
+
+let localStream;
+let remoteStream;
+let peerConnection;
+const config = {
+    iceServers: [
+        { urls: "stun:stun.l.google.com:19302" } // Google STUN server
+    ]
+};
+
 const localVideo = document.getElementById("localVideo");
 const remoteVideo = document.getElementById("remoteVideo");
 
-let localStream;
-let peerConnection;
-const ws = new WebSocket("wss://webrtc-test-aht2.onrender.com");
+// Get user media (camera & mic)
+navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+    .then(stream => {
+        localStream = stream;
+        localVideo.srcObject = stream;
+    })
+    .catch(error => console.error("Error accessing media devices:", error));
 
-const servers = {
-    iceServers: [{ urls: "stun:stun.l.google.com:19302" }], // STUN server for NAT traversal
-};
-
-let myName, otherPeer;
-
-// Register with the signaling server
-function register(name) {
-    myName = name;
-    ws.send(JSON.stringify({ type: "register", name }));
-}
-
-// Handle messages from WebSocket
+// Handle WebSocket messages
 ws.onmessage = async (message) => {
     const data = JSON.parse(message.data);
 
-    if (data.type === "offer") {
-        otherPeer = data.from;
-        await getMedia();
-        createPeerConnection();
-
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(data));
-        const answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answer);
-
-        ws.send(JSON.stringify({ type: "answer", to: otherPeer, sdp: answer.sdp }));
-    } else if (data.type === "answer") {
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(data));
-    } else if (data.type === "ice-candidate") {
-        peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+    switch (data.type) {
+        case "offer":
+            await handleOffer(data.offer);
+            break;
+        case "answer":
+            await handleAnswer(data.answer);
+            break;
+        case "candidate":
+            if (peerConnection) {
+                await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+            }
+            break;
     }
 };
 
-// Get camera and mic access
-async function getMedia() {
-    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    localVideo.srcObject = localStream;
-}
-
 // Create WebRTC connection
 function createPeerConnection() {
-    peerConnection = new RTCPeerConnection(servers);
+    peerConnection = new RTCPeerConnection(config);
 
-    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+    // Add local stream to the connection
+    localStream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, localStream);
+    });
 
+    // Handle remote stream
     peerConnection.ontrack = (event) => {
-        remoteVideo.srcObject = event.streams[0];
+        if (!remoteStream) {
+            remoteStream = new MediaStream();
+            remoteVideo.srcObject = remoteStream;
+        }
+        remoteStream.addTrack(event.track);
     };
 
+    // Handle ICE candidates
     peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
-            ws.send(JSON.stringify({ type: "ice-candidate", to: otherPeer, candidate: event.candidate }));
+            ws.send(JSON.stringify({ type: "candidate", candidate: event.candidate }));
         }
     };
 }
 
-// Start a call
-async function startCall(peerName) {
-    otherPeer = peerName;
-    await getMedia();
+// Handle incoming offer
+async function handleOffer(offer) {
     createPeerConnection();
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+    ws.send(JSON.stringify({ type: "answer", answer }));
+}
 
+// Handle incoming answer
+async function handleAnswer(answer) {
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+}
+
+// Start call (send an offer)
+async function startCall() {
+    createPeerConnection();
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
-
-    ws.send(JSON.stringify({ type: "offer", to: otherPeer, sdp: offer.sdp }));
+    ws.send(JSON.stringify({ type: "offer", offer }));
 }
+
+// Attach `startCall` function to a button
+document.getElementById("callButton").addEventListener("click", startCall);
