@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Video Chat</title>
+</head>
+<body>
+    <h2>WebRTC Video Chat</h2>
+    <input id="username" placeholder="Enter your name">
+    <button onclick="register(document.getElementById('username').value)">Register</button>
+
+    <input id="peerName" placeholder="Enter peer name">
+    <button onclick="startCall(document.getElementById('peerName').value)">Start Call</button>
+
+    <video id="localVideo" autoplay playsinline></video>
+    <video id="remoteVideo" autoplay playsinline></video>
+
+    <script src="webrtc.js"></script>
+</body>
+</html>
