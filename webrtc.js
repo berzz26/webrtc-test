@@ -3,7 +3,7 @@ const remoteVideo = document.getElementById("remoteVideo");
 
 let localStream;
 let peerConnection;
-const ws = new WebSocket("ws://localhost:3000");
+const ws = new WebSocket("wss://webrtc-test-aht2.onrender.com");
 
 const servers = {
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }], // STUN server for NAT traversal
