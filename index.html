@@ -4,17 +4,43 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebRTC Video Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            margin-top: 20px;
+        }
+        .video-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px;
+        }
+        video {
+            width: 45%;
+            max-width: 400px;
+            border: 2px solid black;
+            border-radius: 10px;
+            background-color: black;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h2>WebRTC Video Chat</h2>
-    <input id="username" placeholder="Enter your name">
-    <button onclick="register(document.getElementById('username').value)">Register</button>
-
-    <input id="peerName" placeholder="Enter peer name">
-    <button onclick="startCall(document.getElementById('peerName').value)">Start Call</button>
-
-    <video id="localVideo" autoplay playsinline></video>
-    <video id="remoteVideo" autoplay playsinline></video>
+    <h1>WebRTC Video Chat</h1>
+    <div class="video-container">
+        <video id="localVideo" autoplay playsinline></video>
+        <video id="remoteVideo" autoplay playsinline></video>
+    </div>
+    <button id="callButton">Start Call</button>
 
     <script src="webrtc.js"></script>
 </body>
